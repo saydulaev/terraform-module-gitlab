@@ -1,0 +1,51 @@
+---
+# version: '3.6'
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:16.11.2-ce.0
+    container_name: gitlab
+    restart: always
+    hostname: 'gitlab.example.local'
+    environment:
+      GITLAB_ROOT_EMAIL: 'admin@example.local'
+      GITLAB_ROOT_PASSWORD: pscDgNVEbr6xJ33G5YcneJXp6Px86XrXUVm3dPxFRePWz5b7sVEr3uWQCufP5h4x
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://gitlab.example.local'
+        gitlab_rails['lfs_enabled'] = true
+        letsencrypt['enable'] = false
+        gitlab_rails['registry_enabled'] = true
+        gitlab_rails['registry_port'] = "5005"
+        registry_nginx['ssl_certificate'] = "/etc/gitlab/ssl/gitlab.crt"
+        registry_nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/gitlab.key"
+        registry_nginx['custom_gitlab_server_config'] = 'ssl_password_file "/etc/gitlab/ssl/password_file";'
+        registry_external_url 'https://gitlab.example.local'
+        nginx['enable'] = true
+        nginx['custom_gitlab_server_config'] = 'ssl_password_file "/etc/gitlab/ssl/password_file";'
+        nginx['ssl_protocols'] = "TLSv1 TLSv1.1 TLSv1.2 TLSv1.3"
+        nginx['client_max_body_size'] = '250m'
+        nginx['redirect_http_to_https'] = true
+        nginx['ssl_certificate'] = "/etc/gitlab/ssl/gitlab.crt"
+        nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/gitlab.key"
+        nginx['hsts_max_age'] = 63072000
+        prometheus_monitoring['enable'] = false
+        sidekiq['metrics_enabled'] = false
+        puma['exporter_enabled'] = false
+        grafana['enable'] = false
+        prometheus['enable'] = false
+    ports:
+      - '80:80'
+      - '443:443'
+      - '22:22'
+    volumes:
+      - './config:/etc/gitlab'
+      - './logs:/var/log/gitlab'
+      - './data:/var/opt/gitlab'
+      - './ssl:/etc/gitlab/ssl'
+      - './ssl:/etc/gitlab/trusted-certs'
+    shm_size: '256m'
+    networks:
+      - gitlab-network
+
+networks:
+  gitlab-network:
+    name: gitlab-network

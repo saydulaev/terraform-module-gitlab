@@ -1,0 +1,77 @@
+version: '3'
+
+tasks:
+  terraform:init:
+    summary: |
+      Run terraform init
+
+      Please make sure that you have set GITLAB_TOKEN before starting.
+    desc: Run terraform init
+    silent: true
+    internal: true
+    cmds:
+      - terraform init
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform:plan:
+    summary: |
+      Run terraform plan
+
+      Please make sure that you have set GITLAB_TOKEN before starting.
+    # watch: true
+    desc: Run terraform plan
+    silent: true
+    deps: [terraform:init]
+    cmds:
+      - terraform plan
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform:apply:
+    summary: |
+      Run terraform apply -auto-approve
+
+      Please make sure that you have set GITLAB_TOKEN before starting.
+    desc: Create full example resources
+    silent: true
+    cmds:
+      - terraform apply -auto-approve
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform:destroy:
+    summary: |
+      Run terraform destroy -auto-approve
+
+      Please make sure that you have set GITLAB_TOKEN before starting.
+    desc: Destroy full example resources
+    silent: true
+    preconditions:
+      - test -f terraform.tfstate
+      - test -d .terraform
+      - test -f .terraform.lock.hcl
+    cmds:
+      - terraform destroy -auto-approve
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform:clean:
+    desc: Clean project dir
+    summary: |
+      Clean terraform state and other related dirs and folders
+    prompt: |
+      Terraform state files, .terraform.lock.hcl and .terraform dir will be deleted.
+      Do you want to continue?
+    preconditions:
+      - sh: test -f terraform.tfstate || test -f terraform.tfstate.backup
+        msg: "terraform.tfstate or terraform.tfstate.backup file must exists"
+      - sh: test -d .terraform
+        msg: ".terraform directory must exists"
+      - sh: test -f .terraform.lock.hcl
+        msg: ".terraform.lock.hcl file must exists"
+    cmds:
+      - task: "terraform:destroy"
+      - rm terraform.tfstat*
+      - rm -rf .terraform
+      - rm .terraform.lock.hcl

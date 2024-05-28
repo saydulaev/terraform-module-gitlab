@@ -1,0 +1,387 @@
+---
+
+instance_variables:
+  - key: "instance_var1"
+    value: "instance-var1-value"
+
+applications:
+  - name: oidc
+    redirect_url: "https://oidc.example.local"
+    scopes: ["openid"]
+
+topics:
+  - name: "functional-programming"
+    title: "Functional Programming"
+    description: "In computer science, functional programming is a programming paradigm where programs are constructed by applying and composing functions."
+
+# global_level_notifications:
+#   - level: custom
+#     new_merge_request: true
+#   - level: watch
+
+system_hooks:
+  - url: "https://example.com/hook-%d"
+    token: "secret-token"
+    push_events: true
+    tag_push_events: true
+    merge_requests_events: true
+    repository_update_events: true
+    enable_ssl_verification : true
+
+groups:
+  share_group:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    memberships:
+      - user_id: "User3"
+        access_level: "reporter"
+  test_upper_group:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    wiki_access_level: disabled
+    visibility_level: internal
+    access_tokens:
+      - name: token1
+        scopes: ['read_repository']
+        access_level: reporter
+        expires_at: "2024-11-11"
+    deploy_tokens:
+      - name: "test_deploy_token_1"
+        scopes: ["read_repository", "read_registry"]
+    badges:
+      - link_url: "https://gitlab.example.local/badge-123"
+        image_url: "https://gitlab.example.local/badge-123.svg"
+        name: badge-123
+      # Pipeline status badges with placeholders will be enabled for each project
+      - link_url: "https://gitlab.example.local/%%{project_path}/-/pipelines?ref=%%{default_branch}"
+        image_url: "https://gitlab.example.local/%%{project_path}/badges/%%{default_branch}/pipeline.svg"
+        name: "Pipeline status"
+    custom_attributes:
+      - key: "name"
+        value: "value"
+    labels:
+      - name: "test"
+        description: "Test main group label"
+        color: "#0000ff"
+    epic_boards:
+      - name: "test-epic-board"
+        lists:
+          - label_id: "test"
+    hooks:
+      - url: "http://example.local"
+        token: "example.local_token"
+        enable_ssl_verification: false
+        push_events: true
+        push_events_branch_filter: devel
+        issues_events: false
+        confidential_issues_events: false
+        merge_requests_events: true
+        tag_push_events: true
+        note_events: true
+        confidential_note_events: true
+        job_events: true
+        pipeline_events: true
+        wiki_page_events: true
+        deployment_events: true
+        releases_events: true
+        subgroup_events: true
+    # The plugin encountered an error, and failed to respond to the plugin6.(*GRPCProvider).ApplyResourceChange call. The plugin logs may contain more details.
+    # issue_boards:
+    # - name: "issuer-board-1"
+    #   lists:
+    #   - label_id: "test"
+    #     position: 0
+    # ldap_link:
+    #   cn: "testuser"
+    #   group_access: "developer"
+    #   ldap_provider: "ldapmain"
+    # saml_link:
+    #   access_level: "developer"
+    #   saml_group_name: "samlgroupname1"
+    share_groups:
+      - share_group_id: share_group
+        group_access: guest
+    protected_environments:
+      - environment: production
+        deploy_access_levels:
+          - access_level: "developer"
+        approval_rules:
+          - user_id: 789
+          - access_level: "developer"
+          - group_id: 456
+    variables: 
+      - key: "test_group_protected_var1"
+        value: "var1_val"
+        protected: true
+        masked: true
+        description: "test group protected var1"
+      - key: "test_group_var2"
+        value: "var2_val"
+        protected: false
+        masked: false
+        description: "test group var2"
+    memberships:
+      - user_id: "User1"
+        access_level: "developer"
+        # expires_at: "2025-02-16"
+        # member_role_id: 10 # Only available for Ultimate instances
+        # skip_subresources_on_destroy: false
+        # unassign_issuables_on_destroy: false 
+      - user_id: "User2"
+        access_level: "maintainer"
+  test_child_group_tier1:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: test_upper_group
+    labels:
+    - name: "child_label"
+      description: "Child group label"
+      color: "#000094"
+    access_tokens:
+    - name: reader
+      scopes: ['read_repository']
+      access_level: reporter
+      expires_at: "2024-11-11"
+  test_child_group_tier2:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: test_child_group_tier1
+    access_tokens:
+    - name: reader
+      scopes: ['read_repository']
+      access_level: reporter
+      expires_at: "2024-11-11"
+
+
+users:
+- name: "User1"
+  username: "User1"
+  email: "user1@example.local"
+  password: "fgNq4o2QThakbt5"
+- name: "User2"
+  username: "User2"
+  email: "user2@example.local"
+  password: "9cAmXQN6n55op5n"
+- name: "User3"
+  username: "User3"
+  email: "user3@example.local"
+  password: "vp8ZRnmAAfayTXX"
+# - name: "FullExampleUser"
+#   username: "full-example-user"
+#   email: "full-example-user@example.local"
+#   sshkeys:
+#     - key: "ssh-ed25519 AA..zX"
+#       title: "The first ssh key"
+#     - key: "ecdsa-sha2-nistp521 AA..DQ"
+#       title: "The second ssh key"
+#   gpgkeys:
+#     - key: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmQ...bp\n-----END PGP PUBLIC KEY BLOCK-----"
+#   custom_attributes:
+#     - key: "attr1"
+#       value: "value"
+#   access_tokens:
+#     - name: "the_first_token"
+#       scopes: ["read_registry"]
+#       expires_at: "2024-11-01"
+#     - name: "the_second_token"
+#       scopes: ["read_repository"]
+#       expires_at: "2024-11-01"
+
+projects:
+- name: "example"
+  description: "My awesome codebase"
+  visibility_level: private # Visibility level depends on visibility_level of group where it will be placed
+  namespace_id: test_child_group_tier2
+  variables: 
+    - key: "PROJECT_VAR1"
+      value: "PROJECT_VAR1"
+      protected: true
+      masked: true
+      description: "PROJECT_VAR1"
+  access_tokens:
+    - name: "project-token1"
+      scopes: ['read_repository']
+      access_level: reporter
+      expires_at: "2024-11-11"
+  badges:
+    - link_url: "https://gitlab.example.local/badge-123"
+      image_url: "https://gitlab.example.local/badge-123.svg"
+      name: "Project badge-123"
+    # Pipeline status badges with placeholders will be enabled for each project
+    - link_url: "https://gitlab.example.local/%%{project_path}/-/pipelines?ref=%%{default_branch}"
+      image_url: "https://gitlab.example.local/%%{project_path}/badges/%%{default_branch}/pipeline.svg"
+      name: "Project pipeline status"
+  custom_attributes:
+    - key: "name"
+      value: "value"
+  labels:
+    - name: "project-library-label-1"
+      description: "project library label-1 description"
+      color: "#FFAABB"
+    - name: "project-library-label-2"
+      description: "project label-2 description"
+      color: "#FFAABB"
+  hooks:
+    - url: "http://example.local"
+      token: "example.local_token"
+      enable_ssl_verification: false
+      push_events: true
+      push_events_branch_filter: devel
+      issues_events: false
+      confidential_issues_events: false
+      merge_requests_events: true
+      tag_push_events: true
+      note_events: true
+      confidential_note_events: true
+      job_events: true
+      pipeline_events: true
+      wiki_page_events: true
+      deployment_events: true
+      releases_events: true
+      subgroup_events: true
+  milestones:
+    - title: milestone-1
+      description: "test milestone"
+      start_date: "2024-04-27"
+      due_date: "2024-05-01"
+      state: active
+  issue_boards:
+    - name: "issuer-board-1"
+      lists:
+      - label_id: "project-library-label-1"
+    - name: "issuer-board-2"
+      # milestone_id: milestone-1
+      lists:
+      - label_id: "project-library-label-2"
+  memberships:
+    - user_id: "User3"
+      access_level: "guest"
+  # mirroring:
+  #   url: "https://git1.example.local"
+  #   enabled: false
+  #   keep_divergent_refs: true
+  #   only_protected_branches: true
+  approval_rules:
+    - name: "Example Rule 1"
+      approvals_required: 2
+      user_ids: ["User1", "User2"]
+      group_ids: ["test_upper_group", "test_child_group_tier1"]
+    # applies_to_all_protected_branches: true
+    # rule_type: "regular"
+    # - name: "Example Rule 2"
+    #   approvals_required: 3
+    #   user_ids: ["User1", "User2", "User3"]
+    #   group_ids: ["test_upper_group", "test_child_group_tier1", "test_child_group_tier2"]
+    #   protected_branch_ids: ["main", "release"]
+    #   rule_type: "regular"
+  # compliance_frameworks:
+  #   - compliance_framework_id: ""
+  environments:
+    - name: feature1
+    - name: feature2
+  freeze_period:
+    freeze_start: "0 23 * * 5"
+    freeze_end: "0 7 * * 1"
+    cron_timezone: "UTC"
+  # job_token_scopes:
+  #   - target_project_id: "<PROJECT_NAME>"
+  level_mr_approvals:
+    reset_approvals_on_push: true
+    disable_overriding_approvers_per_merge_request: false
+    merge_requests_author_approval: false
+    merge_requests_disable_committers_approval: true
+  # runners:
+  # - runner_id: ""
+  # share_groups:
+  #   - group_id: "<PROJECT_NAME>"
+  #     group_access: guest
+  level_notifications:
+    level: custom # watch / disabled / custom
+    close_issue: true
+    merge_merge_request: true
+  # pipeline_schedule:
+  #   - description: "Used to schedule builds"
+  #     ref: "main"
+  #     cron: "0 1 * * *"
+  #     active: true
+  #     cron_timezone: "UTC+3"
+  #     take_ownership: true
+  #     variables:
+  #     - key: "pipeline schedule var 1"
+  #       value: "pipeline schedule var 1"
+  protected_environments:
+    - environment: production
+      deploy_access_levels:
+      - access_level: "developer"
+      approval_rules:
+      - user_id: 789 # "<USER_NAME> or <USER_ID>"
+      - access_level: "developer"
+      - group_id: 456 # "<USER_NAME> or <USER_ID>"
+  deploy_tokens:
+    - name: "project_deploy_token_1"
+      scopes: ["read_repository", "read_registry"]
+
+  # branches:
+  #   - name: test
+  #     ref: main
+  # additional_tags:
+  #   - name: "v0.0.1"
+  #     ref: "main"
+  #     message: "main tag"
+  #     protected: true
+  #     create_access_level: developer
+  #     allowed_to_create:
+  #       - user_id: ruslan
+  #   - name: "v0.0.1-test"
+  #     ref: "test"
+  #     message: "test tag"
+
+  # pages_domain:
+  #   domain: pages.example.local
+  pipeline_triggers:
+    - description: "trigger-1"
+  # release_links:
+  #   - tag_name: "v0.0.1"
+  #     name: "link1"
+  #     url: "https://test/"
+  #     link_type: runbook
+  repository_files:
+    - file_path: "readme.txt"
+      branch: "main"
+      content: "Example project readme"
+      commit_message: "feature: update readme file"
+      overwrite_on_create: true
+  integration_external_wiki:
+    external_wiki_url: "https://MyAwesomeExternalWikiURL.com"
+  # integration_custom_issue_tracker:
+  #   project_url: "https://customtracker.com/issues"
+  #   issues_url: "https://customtracker.com/TEST-:id"
+  integration_emails_on_push:
+    recipients: "myrecipient@example.local myotherrecipient@example.local"
+  # integration_github:
+  #   token: "REDACTED"
+  #   repository_url: "https://github.com/gitlabhq/terraform-provider-gitlab"
+  integration_jira:
+    url: "https://jira.example.com"
+    username: "user"
+    password: "mypass"
+  integration_mattermost:
+    webhook: "https://webhook.com"
+    username: "myuser"
+    push_events : true
+    push_channel: "push_chan"
+  integration_microsoft_teams:
+    webhook: "https://testurl.com/?token=XYZ"
+    push_events: true
+  integration_pipelines_email:
+    recipients: ["gitlab@user.create"]
+    notify_only_broken_pipelines: true
+    branches_to_be_notified: "all"
+  integration_slack:
+    webhook: "https://webhook.com"
+    username: "myuser"
+    push_events: true
+    push_channel: "push_chan"
+
+
+compliance_frameworks: []
