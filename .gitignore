@@ -2,3 +2,8 @@
 .terraform/**
 ca-bundle.crt
 terraform.tfstate
+terraform.tfstate.*
+.devbox
+devbox.lock
+.task
+github.com/
