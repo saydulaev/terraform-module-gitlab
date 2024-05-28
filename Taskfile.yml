@@ -3,29 +3,11 @@ version: '3'
 
 includes:
   remote: 
-    taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.4.2/Taskfile.yml
+    taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.4.3/Taskfile.yml
     internal: true
     vars:
       TASK_RUNTIME:
         sh: echo "${TASK_RUNTIME:-devbox}"
-    aliases:
-      - "v1.4.0"
-  # security:
-  #   taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/security/sast/security/sast/Taskfile.yml
-  #   # taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.3.0/security/Taskfile.yml
-  #   # taskfile: /Users/ruslan/projects/github/taskfile/security/sast/Taskfile.yml
-  #   # internal: true
-  # docker-compose:
-  #   taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/docker-compose/docker-compose/Taskfile.yml
-  #   internal: true
-  #   dir: 'examples/docker'
-  # terraform:
-  #   # taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.3.1/terraform/Taskfile.yml
-  #   taskfile: /Users/ruslan/projects/github/taskfile/terraform/Taskfile.yml
-  #   internal: true
-  #   vars:
-  #     TASK_RUNTIME:
-  #       sh: echo "${TASK_RUNTIME:-devbox}"
 
 vars:
   TASK_RUNTIME:
@@ -56,11 +38,10 @@ tasks:
 
   grype:
     desc: Grype scan config files for misconfigurations
-    summary: ""
+    summary: "Grype scan config files for misconfigurations"
     cmds:
       - task: remote:security:sast:grype:scanner
         vars:
-          CONFIG: 
           GRYPE_OUTPUT: table
           GRYPE_DB_AUTO_UPDATE: false
           GRYPE_ONLY_FIXED: true
@@ -116,8 +97,6 @@ tasks:
       - task: remote:terraform:fmt
         vars:
           FLAGS: '{{.MATCH | join " "}}'
-    # requires:
-    #   vars: [GITLAB_TOKEN]
 
   terraform-validate*:
     summary: terraform validate
@@ -126,8 +105,6 @@ tasks:
       - task: remote:terraform:validate
         vars:
           FLAGS: '{{.MATCH | join " "}}'
-    # requires:
-    #   vars: [GITLAB_TOKEN]
 
   terraform-lint:
     summary: Run tflint validation
@@ -144,8 +121,6 @@ tasks:
       - task: remote:terraform:doc
         vars:
           FLAGS: '--output-file README.md'
-    # requires:
-    #   vars: [GITLAB_TOKEN]
 
   terraform-plan*:
     summary: terraform plan wildcard flags
@@ -175,8 +150,12 @@ tasks:
     summary: terraform destroy
     desc: terraform destroy
     deps: [terraform-init]
+    preconditions:
+      - test -f terraform.tfstate
+      - test -d .terraform
+      - test -f .terraform.lock.hcl
     cmds:
-      - task: terraform:plan
+      - task: remote:terraform:plan
         vars:
           FLAGS: "-destroy"
           GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
