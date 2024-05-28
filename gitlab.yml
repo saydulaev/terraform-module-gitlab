@@ -1,5 +1,33 @@
 ---
 
+instance_variables:
+  - key: "instance_var1"
+    value: "instance-var1-value"
+
+applications:
+  - name: zitadel
+    redirect_url: "https://zitadel.example.local"
+    scopes: ["openid"]
+
+topics:
+  - name: "functional-programming"
+    title: "Functional Programming"
+    description: "In computer science, functional programming is a programming paradigm where programs are constructed by applying and composing functions."
+
+# global_level_notifications:
+#   - level: custom
+#     new_merge_request: true
+#   - level: watch
+
+system_hooks:
+  - url: "https://example.com/hook-%d"
+    token: "secret-token"
+    push_events: true
+    tag_push_events: true
+    merge_requests_events: true
+    repository_update_events: true
+    enable_ssl_verification : true
+
 groups:
   test:
     auto_devops_enabled: true
@@ -8,58 +36,57 @@ groups:
   devops:
     auto_devops_enabled: true
     default_branch_protection: 4
+    wiki_access_level: disabled
     access_tokens:
-    - name: token1
-      scopes: ['read_repository']
-      access_level: reporter
-      expires_at: "2024-11-11"
+      - name: token1
+        scopes: ['read_repository']
+        access_level: reporter
+        expires_at: "2024-11-11"
+    deploy_tokens:
+      - name: "deploy_token_1"
+        scopes: ["read_repository", "read_registry"]
     badges:
-    - link_url: "https://gitlab.example.com/badge-123"
-      image_url: "https://gitlab.example.com/badge-123.svg"
-      name: badge-123
-    # Pipeline status badges with placeholders will be enabled for each project
-    - link_url: "https://gitlab.example.com/%%{project_path}/-/pipelines?ref=%%{default_branch}"
-      image_url: "https://gitlab.example.com/%%{project_path}/badges/%%{default_branch}/pipeline.svg"
-      name: "Pipeline status"
+      - link_url: "https://gitlab.example.local/badge-123"
+        image_url: "https://gitlab.example.local/badge-123.svg"
+        name: badge-123
+      # Pipeline status badges with placeholders will be enabled for each project
+      - link_url: "https://gitlab.example.local/%%{project_path}/-/pipelines?ref=%%{default_branch}"
+        image_url: "https://gitlab.example.local/%%{project_path}/badges/%%{default_branch}/pipeline.svg"
+        name: "Pipeline status"
     custom_attributes:
-    - key: "name"
-      value: "value"
+      - key: "name"
+        value: "value"
     labels:
-    - name: "label-1"
-      description: "label-1 description"
-      color: "#FFAABB"
-    - name: "label-2"
-      description: "label-1 description"
-      color: "#FFAABB"
+      - name: "devops"
+        description: "Devops main group label"
+        color: "#0000ff"
     epic_boards:
-    - name: "epic-board-6"
-      lists:
-      - label_id: "label-1"
+      - name: "epic-board-6"
+        lists:
+          - label_id: "devops"
     hooks:
-    - url: "http://example.local"
-      token: "example.local_token"
-      enable_ssl_verification: false
-      push_events: true
-      push_events_branch_filter: devel
-      issues_events: false
-      confidential_issues_events: false
-      merge_requests_events: true
-      tag_push_events: true
-      note_events: true
-      confidential_note_events: true
-      job_events: true
-      pipeline_events: true
-      wiki_page_events: true
-      deployment_events: true
-      releases_events: true
-      subgroup_events: true
-    issue_boards:
-    - name: "issuer-board-1"
-      lists:
-      - label_id: "label-1"
-        position: 0
-      # - label_id: "label-2"
-      #   position: 1
+      - url: "http://example.local"
+        token: "example.local_token"
+        enable_ssl_verification: false
+        push_events: true
+        push_events_branch_filter: devel
+        issues_events: false
+        confidential_issues_events: false
+        merge_requests_events: true
+        tag_push_events: true
+        note_events: true
+        confidential_note_events: true
+        job_events: true
+        pipeline_events: true
+        wiki_page_events: true
+        deployment_events: true
+        releases_events: true
+        subgroup_events: true
+    # issue_boards:
+    # - name: "issuer-board-1"
+    #   lists:
+    #   - label_id: "devops"
+    #     position: 0
     # ldap_link:
     #   cn: "testuser"
     #   group_access: "developer"
@@ -67,41 +94,115 @@ groups:
     # saml_link:
     #   access_level: "developer"
     #   saml_group_name: "samlgroupname1"
-    share_groups:
-    - share_group_id: test
-      group_access: guest
-    project_file_template: {}
+    # share_groups:
+    #   - share_group_id: test
+    #     group_access: guest
+    # project_file_template: {}
     protected_environments:
-    - environment: production
-      deploy_access_levels:
-      - access_level: "developer"
-      approval_rules:
-      - user_id: 789
-      - access_level: "developer"
-      - group_id: 456
+      - environment: production
+        deploy_access_levels:
+          - access_level: "developer"
+        approval_rules:
+          - user_id: 789
+          - access_level: "developer"
+          - group_id: 456
     variables: 
-    - key: "var1"
-      value: "var2_val_1"
-      protected: true
-      masked: true
-      description: "var1 desc"
-    - key: "var2"
-      value: "var2_val_2"
-      protected: true
-      masked: true
-      description: "var2 desc"
-    membership:
-    - user_id: "ruslan"
-      group_id: "test"
-      access_level: "guest"
-      # expires_at: "2025-02-16"
-      # member_role_id: 10
-      # skip_subresources_on_destroy: false
-      # unassign_issuables_on_destroy: false 
+      - key: "devops_group_protected_var1"
+        value: "var2_val_1"
+        protected: true
+        masked: true
+        description: "devops_group protected var1"
+      - key: "devops_group_var2"
+        value: "var2_val_2"
+        protected: false
+        masked: false
+        description: "devops group var2"
+    memberships:
+      - user_id: "ruslan"
+        group_id: "test"
+        access_level: "guest"
+        # expires_at: "2025-02-16"
+        # member_role_id: 10
+        # skip_subresources_on_destroy: false
+        # unassign_issuables_on_destroy: false 
   infra:
+    # wiki_access_level: ""
     auto_devops_enabled: true
     default_branch_protection: 4
     parent_id: devops
+    labels:
+    # - name: "devops"
+    #   description: "Devops main group label"
+    #   color: "#0000ff"
+    - name: "infra"
+      description: "Infrastructure label"
+      color: "#00e3ff"
+  cicd:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: devops
+    labels:
+    # - name: "devops"
+    #   description: "Devops main group label"
+    #   color: "#0000ff"
+    - name: "cicd"
+      description: "CI/CD group label"
+      color: "#db4d09"
+  helm:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: infra
+    labels:
+    - name: "helm"
+      description: "Helm group label"
+      color: "#000094"
+    access_tokens:
+    - name: reader
+      scopes: ['read_repository']
+      access_level: reporter
+      expires_at: "2024-11-11"
+  ansible:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: infra
+    labels:
+    - name: "ansible"
+      description: "Ansible label"
+      color: "#000000"
+  terraform:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: infra
+    labels:
+    - name: "terraform"
+      description: "Terraform label"
+      color: "#8b3aff"
+    access_tokens:
+    - name: reader
+      scopes: ['read_repository']
+      access_level: reporter
+      expires_at: "2024-11-11"
+  kustomize:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: infra
+    labels:
+    - name: "kustomize"
+      description: "Kustomize label"
+      color: "#ff0000"
+    access_tokens:
+    - name: reader
+      scopes: ['read_repository']
+      access_level: reporter
+      expires_at: "2024-11-11"
+  components:
+    auto_devops_enabled: true
+    default_branch_protection: 4
+    parent_id: cicd
+    labels:
+    - name: "component"
+      description: "Gitlab ci/cd component label"
+      color: "#ff6609"
 
 
 users:
@@ -112,17 +213,29 @@ users:
 - name: "User1"
   username: "User1"
   email: "user1@example.local"
-  # password: "User1_123"
+  password: "fgNq4o2QThakbt5"
 - name: "User2"
   username: "User2"
   email: "user2@example.local"
-  # password: "User_123"
+  password: "9cAmXQN6n55op5n"
 
 projects:
-- name: "test"
-  description: "My test project"
+- name: security
+  description: "Gitlab components repo"
   visibility_level: private
-  namespace_id: infra
+  namespace_id: components
+  badges:
+    - link_url: "https://gitlab.example.local/badge-123"
+      image_url: "https://gitlab.example.local/badge-123.svg"
+      name: "security-123"
+- name: build
+  description: "Gitlab components repo"
+  visibility_level: private
+  namespace_id: components
+- name: library
+  description: "Gitlab components repo"
+  visibility_level: private
+  namespace_id: helm
 - name: "example"
   description: "My awesome codebase"
   visibility_level: internal
@@ -149,10 +262,10 @@ projects:
     - key: "name"
       value: "value"
   labels:
-    - name: "project-label-1"
-      description: "project label-1 description"
+    - name: "project-library-label-1"
+      description: "project library label-1 description"
       color: "#FFAABB"
-    - name: "project-label-2"
+    - name: "project-library-label-2"
       description: "project label-2 description"
       color: "#FFAABB"
   hooks:
@@ -182,12 +295,12 @@ projects:
   issue_boards:
     - name: "issuer-board-1"
       lists:
-      - label_id: "project-label-1"
+      - label_id: "project-library-label-1"
     - name: "issuer-board-2"
       # milestone_id: milestone-1
       lists:
-      - label_id: "project-label-2"
-  membership:
+      - label_id: "project-library-label-2"
+  memberships:
     - user_id: "ruslan"
       access_level: "guest"
   # mirroring:
@@ -209,7 +322,7 @@ projects:
     freeze_end: "0 7 * * 1"
     cron_timezone: "UTC"
   job_token_scopes:
-    - target_project_id: "test"
+    - target_project_id: "library"
   level_mr_approvals:
     reset_approvals_on_push: true
     disable_overriding_approvers_per_merge_request: false
@@ -218,30 +331,97 @@ projects:
   # runners:
   # - runner_id: ""
   share_groups:
-  - group_id: test
-    group_access: guest
-  # level_notifications:
-  #   level: custom # watch / disabled / custom
-  #   close_issue: true
-  #   merge_merge_request: true
-  pipeline_schedule:
-  - description: "Used to schedule builds"
-    ref: "master"
-    cron: "0 1 * * *"
-    active: true
-    cron_timezone: "UTC+3"
-    take_ownership: true
-    # variables:
-    # - key: "pipeline schedule var 1"
-    #   value: "pipeline schedule var 1"
-  # protected_environments:
-  #   - environment: production
-  #     deploy_access_levels:
-  #     - access_level: "developer"
-  #     approval_rules:
-  #     - user_id: 789
-  #     - access_level: "developer"
-  #     - group_id: 456
+    - group_id: helm
+      group_access: guest
+  level_notifications:
+    level: custom # watch / disabled / custom
+    close_issue: true
+    merge_merge_request: true
+  # pipeline_schedule:
+  #   - description: "Used to schedule builds"
+  #     ref: "main"
+  #     cron: "0 1 * * *"
+  #     active: true
+  #     cron_timezone: "UTC+3"
+  #     take_ownership: true
+  #     variables:
+  #     - key: "pipeline schedule var 1"
+  #       value: "pipeline schedule var 1"
+  protected_environments:
+    - environment: production
+      deploy_access_levels:
+      - access_level: "developer"
+      approval_rules:
+      - user_id: 789
+      - access_level: "developer"
+      - group_id: 456
+  deploy_tokens:
+    - name: "project_deploy_token_1"
+      scopes: ["read_repository", "read_registry"]
+
+  # branches:
+  #   - name: test
+  #     ref: main
+  # additional_tags:
+  #   - name: "v0.0.1"
+  #     ref: "main"
+  #     message: "main tag"
+  #     protected: true
+  #     create_access_level: developer
+  #     allowed_to_create:
+  #       - user_id: ruslan
+  #   - name: "v0.0.1-test"
+  #     ref: "test"
+  #     message: "test tag"
+
+  # pages_domain:
+  #   domain: pages.example.local
+  pipeline_triggers:
+    - description: "trigger-1"
+  # release_links:
+  #   - tag_name: "v0.0.1"
+  #     name: "link1"
+  #     url: "https://test/"
+  #     link_type: runbook
+  repository_files:
+    - file_path: "readme.txt"
+      branch: "main"
+      content: "Bark goes the dog"
+      author_email: "terraform@example.com"
+      author_name: "Terraform"
+      commit_message: "feature: update readme file"
+      overwrite_on_create: true
+  integration_external_wiki:
+    external_wiki_url: "https://MyAwesomeExternalWikiURL.com"
+  # integration_custom_issue_tracker:
+  #   project_url: "https://customtracker.com/issues"
+  #   issues_url: "https://customtracker.com/TEST-:id"
+  integration_emails_on_push:
+    recipients: "myrecipient@example.local myotherrecipient@example.local"
+  # integration_github:
+  #   token: "REDACTED"
+  #   repository_url: "https://github.com/gitlabhq/terraform-provider-gitlab"
+  integration_jira:
+    url: "https://jira.example.com"
+    username: "user"
+    password: "mypass"
+  integration_mattermost:
+    webhook: "https://webhook.com"
+    username: "myuser"
+    push_events : true
+    push_channel: "push_chan"
+  integration_microsoft_teams:
+    webhook: "https://testurl.com/?token=XYZ"
+    push_events: true
+  integration_pipelines_email:
+    recipients: ["gitlab@user.create"]
+    notify_only_broken_pipelines: true
+    branches_to_be_notified: "all"
+  integration_slack:
+    webhook: "https://webhook.com"
+    username: "myuser"
+    push_events: true
+    push_channel: "push_chan"
 
 
 compliance_frameworks: []

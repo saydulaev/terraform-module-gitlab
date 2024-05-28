@@ -1,4 +1,4 @@
-/**/
+
 locals {
   _projects = [for project in local.gitlab_projects : {
     name                                             = project.name
@@ -67,7 +67,7 @@ locals {
     printing_merge_request_link_enabled              = try(project.printing_merge_request_link_enabled, null)
     public_builds                                    = try(project.public_builds, null)
     public_jobs                                      = try(project.public_jobs, null)
-    push_rules                                       = try(project.push_rules, {})
+    push_rules                                       = try(project.push_rules, [])
     releases_access_level                            = try(project.releases_access_level, null)
     remove_source_branch_after_merge                 = try(project.remove_source_branch_after_merge, null)
     repository_access_level                          = try(project.repository_access_level, null)
@@ -87,7 +87,7 @@ locals {
     tags                                             = try(project.tags, null)
     template_name                                    = try(project.template_name, null)
     template_project_id                              = try(project.template_project_id, null)
-    timeouts                                         = try(project.timeouts, {})
+    timeouts                                         = try(project.timeouts, [])
     topics                                           = try(project.topics, null)
     use_custom_template                              = try(project.use_custom_template, null)
     visibility_level                                 = try(project.visibility_level, null)
@@ -152,22 +152,22 @@ locals {
         project = project.name
         // parent_id                  = try(local.gitlab_groups[group].parent_id, null)
         url                        = hook.url
-        confidential_issues_events = try(hook.confidential_issues_events, null)
-        confidential_note_events   = try(hook.confidential_note_events, null)
-        custom_webhook_template    = try(hook.custom_webhook_template, null)
-        deployment_events          = try(hook.deployment_events, null)
-        enable_ssl_verification    = try(hook.enable_ssl_verification, null)
-        issues_events              = try(hook.issues_events, null)
-        job_events                 = try(hook.job_events, null)
-        merge_requests_events      = try(hook.merge_requests_events, null)
-        note_events                = try(hook.note_events, null)
-        pipeline_events            = try(hook.pipeline_events, null)
-        push_events                = try(hook.push_events, null)
-        push_events_branch_filter  = try(hook.push_events_branch_filter, null)
-        releases_events            = try(hook.releases_events, null)
-        subgroup_events            = try(hook.subgroup_events, null)
-        tag_push_events            = try(hook.tag_push_events, null)
-        wiki_page_events           = try(hook.wiki_page_events, null)
+        confidential_issues_events = try(hook.confidential_issues_events, false)
+        confidential_note_events   = try(hook.confidential_note_events, false)
+        custom_webhook_template    = try(hook.custom_webhook_template, false)
+        deployment_events          = try(hook.deployment_events, false)
+        enable_ssl_verification    = try(hook.enable_ssl_verification, false)
+        issues_events              = try(hook.issues_events, false)
+        job_events                 = try(hook.job_events, false)
+        merge_requests_events      = try(hook.merge_requests_events, false)
+        note_events                = try(hook.note_events, false)
+        pipeline_events            = try(hook.pipeline_events, false)
+        push_events                = try(hook.push_events, false)
+        push_events_branch_filter  = try(hook.push_events_branch_filter, false)
+        releases_events            = try(hook.releases_events, false)
+        subgroup_events            = try(hook.subgroup_events, false)
+        tag_push_events            = try(hook.tag_push_events, false)
+        wiki_page_events           = try(hook.wiki_page_events, false)
         token                      = try(hook.token, null)
       })
     ] : []
@@ -176,6 +176,7 @@ locals {
         project           = project.name
         key               = v.key
         value             = v.value
+        project_id        = try(v.project_id, null)
         description       = try(v.description, null)
         environment_scope = try(v.environment_scope, "*")
         masked            = try(v.masked, false)
@@ -224,8 +225,8 @@ locals {
         state       = try(milestone.state, null)
       })
     ] : []
-    membership = length(try(project.membership, [])) > 0 ? [
-      for member in project.membership : merge({
+    memberships = length(try(project.memberships, [])) > 0 ? [
+      for member in project.memberships : merge({
         project      = project.name
         user_id      = member.user_id
         access_level = member.access_level
@@ -238,7 +239,7 @@ locals {
       enabled                 = try(project.mirroring.enabled, null)
       keep_divergent_refs     = try(project.mirroring.keep_divergent_refs, null)
       only_protected_branches = try(project.mirroring.only_protected_branches, null)
-    } : {}
+    } : null
     approval_rules = length(try(project.approval_rules, [])) > 0 ? [
       for rule in project.approval_rules : merge({
         project                                               = project.name
@@ -265,7 +266,7 @@ locals {
       freeze_end    = project.freeze_period.freeze_end
       freeze_start  = project.freeze_period.freeze_start
       cron_timezone = try(project.freeze_period.cron_timezone, null)
-    } : {}
+    } : null
     issues = length(try(project.issues, [])) > 0 ? [
       for i in project.issues : merge({
         project                                 = project.name
@@ -295,7 +296,7 @@ locals {
         target_project_id = scope.target_project_id
       })
     ] : []
-    level_mr_approvals = length(try(project.level_mr_approvals, [])) > 0 ? {
+    level_mr_approvals = length(keys(try(project.level_mr_approvals, {}))) > 0 ? {
       project                                        = project.name
       disable_overriding_approvers_per_merge_request = try(project.level_mr_approvals.disable_overriding_approvers_per_merge_request, null)
       merge_requests_author_approval                 = try(project.level_mr_approvals.merge_requests_author_approval, null)
@@ -303,7 +304,7 @@ locals {
       require_password_to_approve                    = try(project.level_mr_approvals.require_password_to_approve, null)
       reset_approvals_on_push                        = try(project.level_mr_approvals.reset_approvals_on_push, null)
       selective_code_owner_removals                  = try(project.level_mr_approvals.selective_code_owner_removals, null)
-    } : {}
+    } : null
     runners = length(try(project.runners, [])) > 0 ? [
       for runner in project.runners : merge({
         project   = project.name
@@ -318,19 +319,24 @@ locals {
         group_access = try(share.group_access, null)
       })
     ] : []
-    level_notifications = can(project.level_notifications) ? merge(
-      { project = project.name },
-      try(project.level_notifications.level, null) == "custom" ? project.level_notifications : null,
-      contains(["disabled", "participating", "watch", "global", "mention"], try(project.level_notifications.level, "")) ? {
-        level = project.level_notifications.level
-      } : {}
-    ) : {}
-    tags = length(try(project.tags, [])) > 0 ? [
-      for tag in project.tags : merge({
-        project = project.name
-        name    = tag.name
-        ref     = tag.ref
-        message = try(tag.message, null)
+    level_notifications = can(project.level_notifications) ? {
+      project = try(project.level_notifications.project, project.name),
+      level   = project.level_notifications.level
+    } : null
+    additional_tags = length(try(project.additional_tags, [])) > 0 ? [
+      for tag in project.additional_tags : merge({
+        project             = project.name
+        name                = tag.name
+        ref                 = tag.ref
+        message             = try(tag.message, null)
+        protected           = try(tag.protected, false)
+        create_access_level = try(tag.create_access_level, null)
+        allowed_to_create = length(try(tag.allowed_to_create, [])) > 0 ? [
+          for allowed in tag.allowed_to_create : {
+            group_id = try(allowed.group_id, null),
+            user_id  = try(allowed.user_id, null)
+          }
+        ] : []
       })
     ] : []
     deploy_keys = length(try(project.deploy_keys, [])) > 0 ? [
@@ -348,724 +354,260 @@ locals {
       certificate      = try(project.pages_domain.certificate, null)
       auto_ssl_enabled = try(project.pages_domain.auto_ssl_enabled, null)
       expired          = try(project.pages_domain.expired, null)
-    } : {}
-    pipeline_schedule = length(try(project.pipeline_schedule, [])) > 0 ? [
+    } : null
+    pipeline_schedules = length(try(project.pipeline_schedule, [])) > 0 ? [
       for pipeline in project.pipeline_schedule : merge({
         project = project.name
         }, pipeline
       )
     ] : []
+    compliance_frameworks = length(try(project.compliance_frameworks, [])) > 0 ? [
+      for framework in project.compliance_frameworks : merge({
+        project = project.name
+      }, framework)
+    ] : []
+    branches = length(try(project.branches, [])) > 0 ? [
+      for branch in project.branches : merge({
+        project = project.name
+      }, branch)
+    ] : []
+    license = try(project.license, null) != null ? {
+      approval_status = try(project.license.approval_status, "allowed")
+      name            = project.license.name
+      project         = project.name
+    } : null
+    pipeline_triggers = length(try(project.pipeline_triggers, [])) > 0 ? [
+      for trigger in project.pipeline_triggers : {
+        description = trigger.description,
+        project     = project.name
+      }
+    ] : []
+    release_links = length(try(project.release_links, [])) > 0 ? [
+      for release in project.release_links : {
+        project   = project.name
+        tag_name  = release.tag_name
+        name      = release.name
+        url       = release.url
+        filepath  = try(release.filepath, null)
+        link_type = try(release.link_type, null)
+      }
+    ] : []
+    // repository_files = length(try(project.release_links, [])) > 0 ? [
+    repository_files = length(try(project.repository_files, [])) > 0 ? [
+      for file in project.repository_files : {
+        project               = project.name
+        file_path             = file.file_path
+        branch                = file.branch
+        content               = base64encode(file.content)
+        author_email          = try(file.author_email, null)
+        author_name           = try(file.author_name, null)
+        commit_message        = try(file.commit_message, null)
+        create_commit_message = try(file.create_commit_message, null)
+        delete_commit_message = try(file.delete_commit_message, null)
+        encoding              = try(file.encoding, null)
+        execute_filemode      = try(file.execute_filemode, null)
+        overwrite_on_create   = try(file.overwrite_on_create, null)
+        start_branch          = try(file.start_branch, null)
+        update_commit_message = try(file.update_commit_message, null)
+    }] : []
+    integration_custom_issue_tracker = can(project.integration_custom_issue_tracker) ? merge({
+      project = project.name
+    }, project.integration_custom_issue_tracker) : null
+    integration_emails_on_push = can(project.integration_emails_on_push) ? merge({
+      project = project.name
+    }, project.integration_emails_on_push) : null
+    integration_external_wiki = can(project.integration_external_wiki) ? merge({
+      project = project.name
+    }, project.integration_external_wiki) : null
+    integration_github = can(project.integration_github) ? merge({
+      project = project.name
+    }, project.integration_github) : null
+    integration_jira = can(project.integration_jira) ? merge({
+      project = project.name
+    }, project.integration_jira) : null
+    integration_mattermost = can(project.integration_mattermost) ? merge({
+      project = project.name
+    }, project.integration_mattermost) : null
+    integration_microsoft_teams = can(project.integration_microsoft_teams) ? merge({
+      project = project.name
+    }, project.integration_microsoft_teams) : null
+    integration_pipelines_email = can(project.integration_pipelines_email) ? merge({
+      project = project.name
+    }, project.integration_pipelines_email) : null
+    integration_slack = can(project.integration_slack) ? merge({
+      project = project.name
+    }, project.integration_slack) : null
   }]
 
   projects = { for p in local._projects : p.name => p }
 }
 
-resource "gitlab_project" "this" {
+
+module "gitlab_project" {
+  source = "github.com/saydulaev/terraform-module-gitlab-project?ref=ec70db2f9874c7e4243bdd88aa05b7a771e4d125"
   for_each = local.projects
 
-  name                                   = each.value.name
-  allow_merge_on_skipped_pipeline        = each.value.allow_merge_on_skipped_pipeline
-  analytics_access_level                 = each.value.analytics_access_level
-  archive_on_destroy                     = each.value.archive_on_destroy
-  archived                               = each.value.archived
-  auto_cancel_pending_pipelines          = each.value.auto_cancel_pending_pipelines
-  auto_devops_deploy_strategy            = each.value.auto_devops_deploy_strategy
-  auto_devops_enabled                    = each.value.auto_devops_enabled
-  autoclose_referenced_issues            = each.value.autoclose_referenced_issues
-  avatar                                 = each.value.avatar
-  avatar_hash                            = each.value.avatar_hash
-  build_git_strategy                     = each.value.build_git_strategy
-  build_timeout                          = each.value.build_timeout
-  builds_access_level                    = each.value.builds_access_level
-  ci_config_path                         = each.value.ci_config_path
-  ci_default_git_depth                   = each.value.ci_default_git_depth
-  ci_forward_deployment_enabled          = each.value.ci_forward_deployment_enabled
-  ci_restrict_pipeline_cancellation_role = each.value.ci_restrict_pipeline_cancellation_role
-  ci_separated_caches                    = each.value.ci_separated_caches
-  dynamic "container_expiration_policy" {
-    for_each = try(length(keys(each.value.container_expiration_policy)), 0) > 0 ? each.value.container_expiration_policy : {}
-    iterator = policy
-    content {
-      cadence           = policy.value.cadence
-      enabled           = policy.value.enabled
-      keep_n            = policy.value.keep_n
-      name_regex_delete = policy.value.name_regex_delete
-      name_regex_keep   = policy.value.name_regex_keep
-      older_than        = policy.value.older_than
+  tier = var.tier
+  project = {
+    name                                             = each.value.name
+    allow_merge_on_skipped_pipeline                  = each.value.allow_merge_on_skipped_pipeline
+    analytics_access_level                           = each.value.analytics_access_level
+    archive_on_destroy                               = each.value.archive_on_destroy
+    archived                                         = each.value.archived
+    auto_cancel_pending_pipelines                    = each.value.auto_cancel_pending_pipelines
+    auto_devops_deploy_strategy                      = each.value.auto_devops_deploy_strategy
+    auto_devops_enabled                              = each.value.auto_devops_enabled
+    autoclose_referenced_issues                      = each.value.autoclose_referenced_issues
+    avatar                                           = each.value.avatar
+    avatar_hash                                      = each.value.avatar_hash
+    build_git_strategy                               = each.value.build_git_strategy
+    build_timeout                                    = each.value.build_timeout
+    builds_access_level                              = each.value.builds_access_level
+    ci_config_path                                   = each.value.ci_config_path
+    ci_default_git_depth                             = each.value.ci_default_git_depth
+    ci_forward_deployment_enabled                    = each.value.ci_forward_deployment_enabled
+    ci_restrict_pipeline_cancellation_role           = each.value.ci_restrict_pipeline_cancellation_role
+    ci_separated_caches                              = each.value.ci_separated_caches
+    container_expiration_policy                      = each.value.container_expiration_policy
+    container_registry_access_level                  = each.value.container_registry_access_level
+    default_branch                                   = each.value.default_branch
+    description                                      = each.value.description
+    emails_enabled                                   = each.value.emails_enabled
+    environments_access_level                        = each.value.environments_access_level
+    external_authorization_classification_label      = each.value.external_authorization_classification_label
+    feature_flags_access_level                       = each.value.feature_flags_access_level
+    forked_from_project_id                           = each.value.forked_from_project_id
+    forking_access_level                             = each.value.forking_access_level
+    group_runners_enabled                            = each.value.group_runners_enabled
+    group_with_project_templates_id                  = each.value.group_with_project_templates_id
+    import_url                                       = each.value.import_url
+    import_url_password                              = each.value.import_url_password
+    import_url_username                              = each.value.import_url_username
+    infrastructure_access_level                      = each.value.infrastructure_access_level
+    initialize_with_readme                           = each.value.initialize_with_readme
+    issues_access_level                              = each.value.issues_access_level
+    issues_enabled                                   = each.value.issues_enabled
+    issues_template                                  = each.value.issues_template
+    keep_latest_artifact                             = each.value.keep_latest_artifact
+    lfs_enabled                                      = each.value.lfs_enabled
+    merge_commit_template                            = each.value.merge_commit_template
+    merge_method                                     = each.value.merge_method
+    merge_pipelines_enabled                          = each.value.merge_pipelines_enabled
+    merge_requests_access_level                      = each.value.merge_requests_access_level
+    merge_requests_enabled                           = each.value.merge_requests_enabled
+    merge_requests_template                          = each.value.merge_requests_template
+    merge_trains_enabled                             = each.value.merge_trains_enabled
+    mirror                                           = each.value.mirror
+    mirror_overwrites_diverged_branches              = each.value.mirror_overwrites_diverged_branches
+    mirror_trigger_builds                            = each.value.mirror_trigger_builds
+    monitor_access_level                             = each.value.monitor_access_level
+    mr_default_target_self                           = each.value.mr_default_target_self
+    namespace_id                                     = each.value.namespace_id != null ? local.exists_groups[each.value.namespace_id].group_id : null
+    only_allow_merge_if_all_discussions_are_resolved = each.value.only_allow_merge_if_all_discussions_are_resolved
+    only_allow_merge_if_pipeline_succeeds            = each.value.only_allow_merge_if_pipeline_succeeds
+    only_mirror_protected_branches                   = each.value.only_mirror_protected_branches
+    packages_enabled                                 = each.value.packages_enabled
+    pages_access_level                               = each.value.pages_access_level
+    path                                             = each.value.path
+    printing_merge_request_link_enabled              = each.value.printing_merge_request_link_enabled
+    public_jobs                                      = each.value.public_jobs
+    push_rules                                       = each.value.push_rules
+    releases_access_level                            = each.value.releases_access_level
+    remove_source_branch_after_merge                 = each.value.remove_source_branch_after_merge
+    repository_access_level                          = each.value.repository_access_level
+    repository_storage                               = each.value.repository_storage
+    request_access_enabled                           = each.value.request_access_enabled
+    requirements_access_level                        = each.value.requirements_access_level
+    resolve_outdated_diff_discussions                = each.value.resolve_outdated_diff_discussions
+    restrict_user_defined_variables                  = each.value.restrict_user_defined_variables
+    security_and_compliance_access_level             = each.value.security_and_compliance_access_level
+    shared_runners_enabled                           = each.value.shared_runners_enabled
+    skip_wait_for_default_branch_protection          = each.value.skip_wait_for_default_branch_protection
+    snippets_access_level                            = each.value.snippets_access_level
+    snippets_enabled                                 = each.value.snippets_enabled
+    squash_commit_template                           = each.value.squash_commit_template
+    squash_option                                    = each.value.squash_option
+    suggestion_commit_message                        = each.value.suggestion_commit_message
+    tags                                             = each.value.tags
+    template_name                                    = each.value.template_name
+    template_project_id                              = each.value.template_project_id
+    timeouts                                         = each.value.timeouts
+    topics                                           = each.value.topics
+    use_custom_template                              = each.value.use_custom_template
+    visibility_level                                 = each.value.visibility_level
+    wiki_access_level                                = each.value.wiki_access_level
+    wiki_enabled                                     = each.value.wiki_enabled
+  }
+
+  variables              = each.value.variables
+  access_tokens          = each.value.access_tokens
+  badges                 = each.value.badges
+  custom_attributes      = each.value.custom_attributes
+  labels                 = each.value.labels
+  hooks                  = each.value.hooks
+  milestones             = each.value.milestones
+  issue_boards           = each.value.issue_boards
+  memberships            = each.value.memberships
+  mirror                 = each.value.mirroring
+  approval_rules         = each.value.approval_rules
+  compliance_frameworks  = each.value.compliance_frameworks
+  environments           = each.value.environments
+  freeze_period          = each.value.freeze_period
+  job_token_scopes       = each.value.job_token_scopes
+  level_mr_approvals     = null // each.value.level_mr_approvals
+  runners                = each.value.runners
+  share_groups           = each.value.share_groups
+  level_notifications    = each.value.level_notifications
+  pipeline_schedules     = each.value.pipeline_schedules
+  protected_environments = each.value.protected_environments
+  tags                   = each.value.additional_tags
+  deploy_keys            = each.value.deploy_keys
+  deploy_tokens          = each.value.deploy_tokens
+  pages_domain           = each.value.pages_domain
+  branches               = each.value.branches
+  pipeline_triggers      = each.value.pipeline_triggers
+  release_links          = each.value.release_links
+  repository_files       = each.value.repository_files
+
+  integration_custom_issue_tracker = each.value.integration_custom_issue_tracker
+  integration_emails_on_push       = each.value.integration_emails_on_push
+  integration_external_wiki        = each.value.integration_external_wiki
+  integration_github               = each.value.integration_github
+  integration_jira                 = each.value.integration_jira
+  integration_mattermost           = each.value.integration_mattermost
+  integration_microsoft_teams      = each.value.integration_microsoft_teams
+  integration_pipelines_email      = each.value.integration_pipelines_email
+  // integration_slack = each.value.integration_slack
+
+  depends_on = [
+    module.gitlab_group,
+    module.gitlab_group_2_tier,
+    module.gitlab_group_3_tier
+  ]
+}
+
+module "gitlab_project_example_integration_slack" {
+  source = "github.com/saydulaev/terraform-module-gitlab-project?ref=ec70db2f9874c7e4243bdd88aa05b7a771e4d125"
+
+  tier = var.tier
+  integration_slack = {
+    project_id   = module.gitlab_project["example"].id
+    webhook      = "https://webhook.com"
+    username     = "myuser"
+    push_events  = true
+    push_channel = "push_chan"
+  }
+}
+
+module "gitlab_project_example_vars" {
+  source = "github.com/saydulaev/terraform-module-gitlab-project?ref=ec70db2f9874c7e4243bdd88aa05b7a771e4d125"
+
+  variables = [
+    {
+      project_id  = module.gitlab_project["example"].id
+      key         = "test_project_var"
+      value       = "test_project_var_value"
+      description = "test project var description"
     }
-  }
-  container_registry_access_level                  = each.value.container_registry_access_level
-  default_branch                                   = each.value.default_branch
-  description                                      = each.value.description
-  emails_enabled                                   = each.value.emails_enabled
-  environments_access_level                        = each.value.environments_access_level
-  external_authorization_classification_label      = each.value.external_authorization_classification_label
-  feature_flags_access_level                       = each.value.feature_flags_access_level
-  forked_from_project_id                           = each.value.forked_from_project_id
-  forking_access_level                             = each.value.forking_access_level
-  group_runners_enabled                            = each.value.group_runners_enabled
-  group_with_project_templates_id                  = each.value.group_with_project_templates_id
-  import_url                                       = each.value.import_url
-  import_url_password                              = each.value.import_url_password
-  import_url_username                              = each.value.import_url_username
-  infrastructure_access_level                      = each.value.infrastructure_access_level
-  initialize_with_readme                           = each.value.initialize_with_readme
-  issues_access_level                              = each.value.issues_access_level
-  issues_enabled                                   = each.value.issues_enabled
-  issues_template                                  = each.value.issues_template
-  keep_latest_artifact                             = each.value.keep_latest_artifact
-  lfs_enabled                                      = each.value.lfs_enabled
-  merge_commit_template                            = each.value.merge_commit_template
-  merge_method                                     = each.value.merge_method
-  merge_pipelines_enabled                          = each.value.merge_pipelines_enabled
-  merge_requests_access_level                      = each.value.merge_requests_access_level
-  merge_requests_enabled                           = each.value.merge_requests_enabled
-  merge_requests_template                          = each.value.merge_requests_template
-  merge_trains_enabled                             = each.value.merge_trains_enabled
-  mirror                                           = each.value.mirror
-  mirror_overwrites_diverged_branches              = each.value.mirror_overwrites_diverged_branches
-  mirror_trigger_builds                            = each.value.mirror_trigger_builds
-  monitor_access_level                             = each.value.monitor_access_level
-  mr_default_target_self                           = each.value.mr_default_target_self
-  namespace_id                                     = each.value.namespace_id != null ? local.exists_groups[each.value.namespace_id].group_id : null
-  only_allow_merge_if_all_discussions_are_resolved = each.value.only_allow_merge_if_all_discussions_are_resolved
-  only_allow_merge_if_pipeline_succeeds            = each.value.only_allow_merge_if_pipeline_succeeds
-  only_mirror_protected_branches                   = each.value.only_mirror_protected_branches
-  packages_enabled                                 = each.value.packages_enabled
-  pages_access_level                               = each.value.pages_access_level
-  path                                             = each.value.path
-  printing_merge_request_link_enabled              = each.value.printing_merge_request_link_enabled
-  public_jobs                                      = each.value.public_jobs
-  dynamic "push_rules" {
-    for_each = length(each.value.push_rules) > 0 ? toset(each.value.push_rules) : []
-    iterator = rule
-    content {
-      author_email_regex            = try(rule.value.author_email_regex, null)
-      branch_name_regex             = try(rule.value.branch_name_regex, null)
-      commit_committer_check        = try(rule.value.commit_committer_check, null)
-      commit_message_negative_regex = try(rule.value.commit_message_negative_regex, null)
-      commit_message_regex          = try(rule.value.commit_message_regex, null)
-      deny_delete_tag               = try(rule.value.deny_delete_tag, null)
-      file_name_regex               = try(rule.value.file_name_regex, null)
-      max_file_size                 = try(rule.value.max_file_size, null)
-      member_check                  = try(rule.value.member_check, null)
-      prevent_secrets               = try(rule.value.prevent_secrets, null)
-      reject_unsigned_commits       = try(rule.value.reject_unsigned_commits, null)
-    }
-  }
-  releases_access_level                   = each.value.releases_access_level
-  remove_source_branch_after_merge        = each.value.remove_source_branch_after_merge
-  repository_access_level                 = each.value.repository_access_level
-  repository_storage                      = each.value.repository_storage
-  request_access_enabled                  = each.value.request_access_enabled
-  requirements_access_level               = each.value.requirements_access_level
-  resolve_outdated_diff_discussions       = each.value.resolve_outdated_diff_discussions
-  restrict_user_defined_variables         = each.value.restrict_user_defined_variables
-  security_and_compliance_access_level    = each.value.security_and_compliance_access_level
-  shared_runners_enabled                  = each.value.shared_runners_enabled
-  skip_wait_for_default_branch_protection = each.value.skip_wait_for_default_branch_protection
-  snippets_access_level                   = each.value.snippets_access_level
-  snippets_enabled                        = each.value.snippets_enabled
-  squash_commit_template                  = each.value.squash_commit_template
-  squash_option                           = each.value.squash_option
-  suggestion_commit_message               = each.value.suggestion_commit_message
-  tags                                    = each.value.tags
-  template_name                           = each.value.template_name
-  template_project_id                     = each.value.template_project_id
-  dynamic "timeouts" {
-    for_each = length(each.value.timeouts) > 0 ? toset(each.value.timeouts) : []
-    iterator = rule
-    content {
-      create = try(rule.value.create, null)
-      delete = try(rule.value.delete, null)
-    }
-  }
-  topics              = each.value.topics
-  use_custom_template = each.value.use_custom_template
-  visibility_level    = each.value.visibility_level
-  wiki_access_level   = each.value.wiki_access_level
-  wiki_enabled        = each.value.wiki_enabled
-
-  depends_on = [
-    gitlab_group.parent,
-    gitlab_group.other
   ]
-}
-
-locals {
-  access_tokens = {
-    for token in flatten([for p in local.projects : p.access_tokens if length(p.access_tokens) > 0]) :
-    token.name => token
-  }
-}
-
-resource "gitlab_project_access_token" "this" {
-  for_each = {
-    for token in flatten([for p in local.projects : p.access_tokens if length(p.access_tokens) > 0]) :
-    token.name => token
-  }
-  project      = gitlab_project.this[each.value.project].id
-  name         = each.value.name
-  scopes       = each.value.scopes
-  access_level = each.value.access_level
-  expires_at   = each.value.expires_at
-  rotation_configuration = each.value.rotation_configuration != null ? {
-    expiration_days    = try(each.value.rotation_configuration.expiration_days, null)
-    rotate_before_days = try(each.value.rotation_configuration.rotate_before_days, null)
-  } : null
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-data "gitlab_project_branches" "this" {
-  for_each = local.projects
-
-  project = gitlab_project.this[each.value.name].id
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-locals {
-  project_branches = { for p in local.projects : p.name => { for branch in data.gitlab_project_branches.this[p.name].branches : branch.name => branch } }
-}
-
-resource "gitlab_project_approval_rule" "this" {
-  for_each = {
-    for rule in flatten([for p in local.projects : p.approval_rules if length(p.approval_rules) > 0 && contains(["premium", "ultimate"], lower(var.tier))]) :
-    rule.name => rule
-  }
-
-  project                                               = gitlab_project.this[each.value.project].id
-  name                                                  = each.value.name
-  approvals_required                                    = each.value.approvals_required
-  applies_to_all_protected_branches                     = each.value.applies_to_all_protected_branches
-  disable_importing_default_any_approver_rule_on_create = each.value.disable_importing_default_any_approver_rule_on_create
-  user_ids                                              = length(each.value.user_ids) > 0 ? [for user in each.value.user_ids : local.exists_users[user].id] : null
-  group_ids                                             = length(each.value.group_ids) > 0 ? [for group in each.value.group_ids : local.exists_groups[group].group_id] : null
-  // protected_branch_ids                                  = length(each.value.protected_branch_ids) > 0 ? [for branch in each.value.protected_branch_ids : local.project_branches[branch].id ] : null
-  rule_type = each.value.rule_type
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_badge" "this" {
-  for_each = {
-    for badge in flatten([for p in local.projects : p.badges if length(p.badges) > 0]) :
-    badge.link_url => badge
-  }
-  project   = gitlab_project.this[each.value.project].id // each.value.project
-  link_url  = each.value.link_url
-  image_url = each.value.image_url
-  name      = each.value.name
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_compliance_framework" "this" {
-  for_each = {
-    for framework in flatten([for p in local.projects : p.compliance_frameworks if length(try(p.compliance_frameworks, [])) > 0 && contains(["premium", "ultimate"], lower(var.tier))]) :
-    framework.compliance_framework_id => framework
-  }
-
-  compliance_framework_id = gitlab_compliance_framework.this[each.value.compliance_framework_id].framework_id
-  project                 = gitlab_project.this[each.value.project].id
-
-  depends_on = [
-    gitlab_project.this,
-    gitlab_compliance_framework.this
-  ]
-}
-
-resource "gitlab_project_custom_attribute" "this" {
-  for_each = {
-    for attr in flatten([for p in local.projects : p.custom_attributes if length(p.custom_attributes) > 0]) :
-    attr.key => attr
-  }
-  project = gitlab_project.this[each.value.project].id
-  key     = each.value.key
-  value   = each.value.value
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_project_environment" "this" {
-  for_each = {
-    for env in flatten([for p in local.projects : p.environments if length(try(p.environments, [])) > 0]) :
-    env.name => env
-  }
-  project             = gitlab_project.this[each.value.project].id
-  name                = each.value.name
-  external_url        = each.value.external_url
-  stop_before_destroy = each.value.stop_before_destroy
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_freeze_period" "this" {
-  for_each = {
-    for p in local.projects :
-    p.name => p.freeze_period
-    if length(keys(p.freeze_period)) > 0
-  }
-
-  project       = gitlab_project.this[each.value.project].id
-  freeze_start  = each.value.freeze_start
-  freeze_end    = each.value.freeze_end
-  cron_timezone = each.value.cron_timezone
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_hook" "this" {
-  for_each = {
-    for hook in flatten([for p in local.projects : p.hooks
-    if contains(["premium", "ultimate"], lower(var.tier)) && length(p.hooks) > 0]) :
-    hook.url => hook
-  }
-
-  project                    = gitlab_project.this[each.value.group].id
-  url                        = each.value.url
-  confidential_issues_events = each.value.confidential_issues_events
-  confidential_note_events   = each.value.confidential_note_events
-  custom_webhook_template    = each.value.custom_webhook_template
-  deployment_events          = each.value.deployment_events
-  enable_ssl_verification    = each.value.enable_ssl_verification
-  issues_events              = each.value.issues_events
-  job_events                 = each.value.job_events
-  merge_requests_events      = each.value.merge_requests_events
-  note_events                = each.value.note_events
-  pipeline_events            = each.value.pipeline_events
-  push_events                = each.value.push_events
-  push_events_branch_filter  = each.value.push_events_branch_filter
-  releases_events            = each.value.releases_events
-  tag_push_events            = each.value.tag_push_events
-  token                      = each.value.token
-  wiki_page_events           = each.value.wiki_page_events
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-data "gitlab_project_milestones" "this" {
-  for_each = local.projects
-
-  project = gitlab_project.this[each.value.name].id
-  depends_on = [
-    gitlab_project.this,
-    gitlab_project_milestone.this
-  ]
-}
-
-/*
-locals {
-    exists_milestones = {for milestone in data.gitlab_project_milestones.this[*].milestones: milestone.title => milestone }
-}
-*/
-
-output "welcome_issue_this" {
-
-  value = [for p in local.projects : data.gitlab_project_milestones.this[p.name].milestones]
-}
-
-
-
-resource "gitlab_project_issue" "this" {
-  for_each = {
-    for issue in flatten([for p in local.projects : p.issues
-    if length(p.issues) > 0]) :
-    issue.title => issue
-  }
-
-  project                                 = gitlab_project.this[each.value.project].id
-  title                                   = each.value.title
-  assignee_ids                            = each.value.assignee_ids
-  confidential                            = each.value.confidential
-  created_at                              = each.value.created_at
-  delete_on_destroy                       = each.value.delete_on_destroy
-  description                             = <<EOT
-  Welcome to the ${gitlab_project.this[each.value.project].name} project!
-  EOT
-  discussion_locked                       = each.value.discussion_locked // true
-  discussion_to_resolve                   = each.value.discussion_to_resolve
-  due_date                                = each.value.due_date
-  epic_issue_id                           = each.value.epic_issue_id
-  iid                                     = each.value.iid
-  issue_type                              = each.value.issue_type
-  labels                                  = each.value.labels
-  merge_request_to_resolve_discussions_of = each.value.merge_request_to_resolve_discussions_of
-  milestone_id                            = each.value.milestone_id
-  state                                   = each.value.state
-  updated_at                              = each.value.updated_at
-  weight                                  = each.value.weight
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_issue_board" "this" {
-  for_each = {
-    for board in flatten([for p in local.projects : p.issue_boards
-    if length(p.issue_boards) > 0]) :
-    board.name => board
-  }
-
-  name        = each.value.name
-  project     = gitlab_project.this[each.value.project].id
-  assignee_id = each.value.assignee_id
-  labels      = each.value.labels
-  dynamic "lists" {
-    for_each = length(each.value.lists) > 0 ? toset(each.value.lists) : []
-    iterator = item
-    content {
-      assignee_id  = try(item.value.assignee_id, null)
-      iteration_id = try(item.value.iteration_id, null)
-      label_id     = try(item.value.label_id, null) != null ? gitlab_project_label.this[try(item.value.label_id, null)].label_id : null
-      milestone_id = try(item.value.milestone_id, null) != null ? gitlab_project_milestone.this[item.value.milestone_id].milestone_id : null
-    }
-  }
-  milestone_id = each.value.milestone_id != null ? gitlab_project_milestone.this[each.value.milestone_id].milestone_id : null
-  weight       = each.value.weight
-  depends_on = [
-    gitlab_project.this,
-    gitlab_project_label.this,
-    gitlab_project_milestone.this
-  ]
-}
-
-resource "gitlab_project_job_token_scope" "this" {
-  for_each = {
-    for scope in flatten([for p in local.projects : p.job_token_scopes
-    if length(p.job_token_scopes) > 0]) :
-    scope.target_project_id => scope
-  }
-
-  project           = gitlab_project.this[each.value.project].id
-  target_project_id = local.exists_projects[each.value.target_project_id].id
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_project_label" "this" {
-  for_each = {
-    for label in flatten([for p in local.projects : p.labels if length(p.labels) > 0]) :
-    label.name => label
-  }
-
-  project     = gitlab_project.this[each.value.project].id
-  name        = each.value.name
-  description = each.value.description
-  color       = each.value.color
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_project_level_mr_approvals" "this" {
-  for_each = {
-    for level in flatten([for p in local.projects :
-    p.level_mr_approvals if contains(["premium", "ultimate"], lower(var.tier)) && length(keys(p.level_mr_approvals)) > 0]) :
-    level.project => level
-  }
-
-  project                                        = each.value.project
-  disable_overriding_approvers_per_merge_request = each.value.disable_overriding_approvers_per_merge_request
-  merge_requests_author_approval                 = each.value.merge_requests_author_approval
-  merge_requests_disable_committers_approval     = each.value.merge_requests_disable_committers_approval
-  require_password_to_approve                    = each.value.require_password_to_approve
-  reset_approvals_on_push                        = each.value.reset_approvals_on_push
-  selective_code_owner_removals                  = each.value.selective_code_owner_removals
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-/*
-resource "gitlab_project_level_notifications" "this" {
-  for_each = {
-    for k,v in local.projects : k=>v.level_notifications 
-    if can(v.level_notifications) && length(keys(v.level_notifications)) > 0
-  }
-
-  project                      = gitlab_project.this[each.value.project].id
-  close_issue                  = try(each.value.close_issue, null)
-  close_merge_request          = try(each.value.close_merge_request, null)
-  failed_pipeline              = try(each.value.failed_pipeline, null)
-  fixed_pipeline               = try(each.value.fixed_pipeline, null)
-  issue_due                    = try(each.value.issue_due, null)
-  level                        =  tostring(each.value.level) // try(each.value.level, null)
-  merge_merge_request          = try(each.value.merge_merge_request, null)
-  merge_when_pipeline_succeeds = try(each.value.merge_when_pipeline_succeeds, null)
-  moved_project                = try(each.value.moved_project, null)
-  new_issue                    = try(each.value.new_issue, null)
-  new_merge_request            = try(each.value.new_merge_request, null)
-  new_note                     = try(each.value.new_note, null)
-  push_to_merge_request        = try(each.value.push_to_merge_request, null)
-  reassign_issue               = try(each.value.reassign_issue, null)
-  reassign_merge_request       = try(each.value.reassign_merge_request, null)
-  reopen_issue                 = try(each.value.reopen_issue, null)
-  reopen_merge_request         = try(each.value.reopen_merge_request, null)
-  success_pipeline             = try(each.value.success_pipeline, null)
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-*/
-
-resource "gitlab_project_membership" "this" {
-  for_each = { for m in flatten([
-    for p in local.projects :
-    p.membership if length(p.membership) > 0
-  ]) : m.user_id => m }
-
-  project      = gitlab_project.this[each.value.project].id
-  user_id      = contains(keys(local.exists_users), each.value.user_id) ? local.exists_users[each.value.user_id].id : null
-  access_level = each.value.access_level
-  expires_at   = each.value.expires_at
-  depends_on = [
-    gitlab_project.this,
-    gitlab_user.this
-  ]
-}
-
-resource "gitlab_project_milestone" "this" {
-  for_each = { for milestone in flatten([
-    for p in local.projects :
-    p.milestones if length(p.milestones) > 0
-  ]) : milestone.title => milestone }
-
-  project     = gitlab_project.this[each.value.project].id
-  title       = each.value.title
-  description = each.value.description
-  due_date    = each.value.due_date
-  start_date  = each.value.start_date
-  state       = each.value.state
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_project_mirror" "this" {
-  for_each = {
-    for p in local.projects :
-    p.name => p.mirroring
-    if length(keys(p.mirroring)) > 0
-  }
-  project                 = gitlab_project.this[each.value.project].id
-  url                     = each.value.url
-  enabled                 = each.value.enabled
-  keep_divergent_refs     = each.value.keep_divergent_refs
-  only_protected_branches = each.value.only_protected_branches
-
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_protected_environment" "this" {
-  for_each = {
-    for env in flatten([for p in local.projects : p.protected_environments
-    if contains(["premium", "ultimate"], lower(var.tier)) && length(p.protected_environments) > 0]) :
-    env.environment => env
-  }
-
-  environment = each.value.environment
-  project     = each.value.project
-  dynamic "deploy_access_levels" {
-    for_each = length(try(each.value.deploy_access_levels, [])) > 0 ? each.value.deploy_access_levels : []
-    iterator = lvl
-    content {
-      access_level           = try(lvl.value.access_level, null)
-      group_id               = try(lvl.group_id, null)
-      group_inheritance_type = try(lvl.group_inheritance_type, null)
-      user_id                = try(lvl.user_id, null)
-    }
-  }
-  approval_rules          = each.value.approval_rules
-  required_approval_count = each.value.required_approval_count
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_project_runner_enablement" "this" {
-  for_each = {
-    for p in flatten([for p in local.projects : p.runners if length(p.runners) > 0]) :
-    p.runner_id => p
-  }
-
-  project   = gitlab_project.this[each.value.project].id
-  runner_id = each.value.runner_id
-
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_project_share_group" "this" {
-  for_each = {
-    for group in flatten([for p in local.projects : p.share_groups if length(p.share_groups) > 0]) :
-    group.group_access => group
-  }
-
-  project      = gitlab_project.this[each.value.project].id
-  group_id     = local.exists_groups[each.value.group_id].group_id
-  group_access = each.value.group_access
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_tag" "this" {
-  for_each = {
-    for tag in flatten([for p in local.projects : p.tags if length(p.tags) > 0]) :
-    tag.name => tag
-  }
-  project = each.value.project
-  name    = each.value.name
-  ref     = each.value.ref
-  message = each.value.message
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_project_variable" "this" {
-  for_each = {
-    for v in flatten([for p in local.projects : p.variables if length(p.variables) > 0]) :
-    v.key => v
-  }
-
-  project           = gitlab_project.this[each.value.project].id // each.value.project
-  key               = each.value.key
-  value             = each.value.value
-  protected         = each.value.protected
-  masked            = each.value.masked
-  environment_scope = each.value.environment_scope
-  description       = each.value.description
-  raw               = each.value.raw
-  variable_type     = each.value.variable_type
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-resource "gitlab_deploy_key" "this" {
-  for_each = {
-    for key in flatten([for p in local.projects : p.deploy_keys if length(p.deploy_keys) > 0]) :
-    key.title => key
-  }
-
-  project  = each.value.project
-  title    = each.value.title
-  key      = each.value.key
-  can_push = each.value.can_push
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_deploy_token" "project" {
-  for_each = {
-    for token in flatten([for p in local.projects : p.deploy_tokens if length(p.deploy_tokens) > 0]) :
-    token.name => token
-  }
-
-  project    = each.value.project
-  name       = each.value.name
-  scopes     = each.value.scopes
-  expires_at = each.value.expires_at
-  username   = each.value.username
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-
-
-resource "gitlab_pages_domain" "this" {
-  for_each = {
-    for p in local.projects :
-    p.name => p.pages_domain
-    if length(keys(p.pages_domain)) > 0
-  }
-
-  project          = gitlab_project.this[each.value.project].id
-  domain           = each.value.domain
-  key              = each.value.key
-  certificate      = each.value.certificate
-  auto_ssl_enabled = each.value.auto_ssl_enabled
-  expired          = each.value.expired
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_pipeline_schedule" "this" {
-  for_each = {
-    for pipeline in flatten([for p in local.projects : p.pipeline_schedule if length(p.pipeline_schedule) > 0]) :
-    pipeline.ref => pipeline
-  }
-
-  project        = gitlab_project.this[each.value.project].id
-  description    = each.value.description
-  ref            = each.value.ref
-  cron           = each.value.cron
-  active         = try(each.value.active, null)
-  cron_timezone  = try(each.value.cron_timezone, null)
-  take_ownership = try(each.value.take_ownership, null)
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-resource "gitlab_pipeline_schedule_variable" "this" {
-  for_each = {
-    for ps in flatten([for p in local.projects : [for pipeline in p.pipeline_schedule :
-      [for v in pipeline.variables :
-        merge({ key = v.key, value = v.value, ref = pipeline.ref, project = p.name })
-      ] if length(try(pipeline.variables, [])) > 0
-    ] if length(p.pipeline_schedule) > 0]) : format("%s-%s", ps.project, ps.ref) => ps
-  }
-
-  project              = gitlab_project.this[each.value.project].id
-  pipeline_schedule_id = gitlab_pipeline_schedule.this[each.value.ref].pipeline_schedule_id
-  key                  = each.value.key
-  value                = each.value.value
-  depends_on = [
-    gitlab_project.this,
-    gitlab_pipeline_schedule.this
-  ]
-}
-
-/*
-resource "gitlab_pipeline_trigger" "this" {
-  project     = "12345"
-  description = "Used to trigger builds"
-}
-*/
-
-data "gitlab_projects" "exists_projects" {
-  depends_on = [
-    gitlab_project.this
-  ]
-}
-
-locals {
-  exists_projects = { for project in data.gitlab_projects.exists_projects.projects : project.name => project }
 }

@@ -9,11 +9,19 @@ terraform {
       source  = "hashicorp/random"
       version = "3.6.1"
     }
+    gpg = {
+      source = "Olivr/gpg"
+      version = ">= 0.2.1"
+    }
+    tls = {
+      source = "hashicorp/tls"
+      version = ">= 4.0.5"
+    }
   }
 }
 
 provider "gitlab" {
   base_url    = "https://gitlab.example.local/api/v4/"
   cacert_file = "ca-bundle.crt"
-  // token = "glpat-7oK3pJysizjtKhVLw4jh"
+  // token = "glpat-***"
 }

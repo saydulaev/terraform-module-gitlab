@@ -24,13 +24,13 @@ locals {
         ] : []
         gpgkeys = length(try(user.gpgkeys, [])) > 0 ? [
           for gpg in user.gpgkeys : merge({
-            user_id = try(user.name, user)
+            user_id = lower(try(user.name, user))
             key     = gpg.key
           })
         ] : []
         sshkeys = length(try(user.sshkeys, [])) > 0 ? [
           for ssh in user.sshkeys : merge({
-            user_id    = try(user.name, user)
+            user_id    = lower(try(user.name, user))
             key        = ssh.key
             title      = ssh.title
             expires_at = try(ssh.expires_at, null)
@@ -49,93 +49,143 @@ locals {
   ] : []
 }
 
-resource "random_password" "password" {
+module "gitlab_user" {
+  source = "github.com/saydulaev/terraform-module-gitlab-user?ref=e850cde4207bf30f702d75ca126575989bd274c9"
   for_each = { for user in local.users : user.username => user }
 
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-
-resource "gitlab_user" "this" {
-  for_each = { for user in local.users : user.username => user }
-
-  email             = each.value.email
-  name              = each.value.name
-  username          = each.value.username
-  can_create_group  = each.value.can_create_group // false
-  is_admin          = each.value.is_admin         // false
-  is_external       = each.value.is_external      // false
-  namespace_id      = each.value.namespace_id
-  note              = each.value.note
-  password          = each.value.password == null ? random_password.password[each.value.username].result : each.value.password
-  projects_limit    = each.value.projects_limit
-  reset_password    = each.value.reset_password
-  skip_confirmation = each.value.skip_confirmation
-  state             = each.value.state // "active"
-}
-
-
-resource "gitlab_user_custom_attribute" "this" {
-  for_each = {
-    for attr in flatten([for u in local.users : u.custom_attributes if length(u.custom_attributes) > 0]) :
-    attr.key => attr
+  user = {
+    email             = each.value.email
+    name              = each.value.name
+    username          = each.value.username
+    can_create_group  = each.value.can_create_group
+    is_admin          = each.value.is_admin
+    is_external       = each.value.is_external
+    namespace_id      = each.value.namespace_id
+    note              = each.value.note
+    password          = each.value.password
+    projects_limit    = each.value.projects_limit
+    reset_password    = each.value.reset_password
+    skip_confirmation = each.value.skip_confirmation
+    state             = each.value.state
   }
-  user  = each.value.user
-  key   = each.value.key
-  value = each.value.value
-  depends_on = [
-    gitlab_user.this
-  ]
+
+  custom_attributes = each.value.custom_attributes
+  gpgkeys           = each.value.gpgkeys
+  sshkeys           = each.value.sshkeys
+  access_tokens     = each.value.access_tokens
 }
 
-resource "gitlab_user_gpgkey" "this" {
-  for_each = {
-    for gpg in flatten([for u in local.users : u.gpgkeys if length(u.gpgkeys) > 0]) :
-    gpg.key => gpg
+resource "tls_private_key" "ssh_user1" {
+  algorithm = "ED25519"
+}
+
+resource "tls_private_key" "ssh_user2" {
+  algorithm = "ED25519"
+}
+
+module "gitlab_user1_ssh" {
+  source = "github.com/saydulaev/terraform-module-gitlab-user?ref=e850cde4207bf30f702d75ca126575989bd274c9"
+
+  sshkey = {
+    key     = tls_private_key.ssh_user1.public_key_openssh
+    title   = "User 1"
+    user_id = "User1"
   }
-  user_id = each.value.user_id
-  key     = each.value.key
   depends_on = [
-    gitlab_user.this
+    module.gitlab_user,
+    tls_private_key.ssh_user1,
   ]
 }
 
-resource "gitlab_user_sshkey" "this" {
-  for_each = {
-    for ssh in flatten([for u in local.users : u.sshkeys if length(u.sshkeys) > 0]) :
-    ssh.key => ssh
+module "gitlab_user2_ssh" {
+  source = "github.com/saydulaev/terraform-module-gitlab-user?ref=e850cde4207bf30f702d75ca126575989bd274c9"
+
+  sshkey = {
+    key     = tls_private_key.ssh_user2.public_key_openssh
+    title   = "User 2"
+    user_id = "User2"
   }
-  user_id    = each.value.user_id
-  title      = each.value.title
-  key        = each.value.key
-  expires_at = each.value.expires_at
   depends_on = [
-    gitlab_user.this
+    module.gitlab_user,
+    tls_private_key.ssh_user2
   ]
 }
 
-resource "gitlab_personal_access_token" "this" {
-  for_each = {
-    for token in flatten([for u in local.users : u.access_tokens if length(u.access_tokens) > 0]) :
-    token.name => token
+resource "gpg_private_key" "user1" {
+  name       = "User1"
+  email      = "user1@example.local"
+  passphrase = "this is not a secure passphrase"
+  rsa_bits   = 3072
+}
+
+resource "gpg_private_key" "user2" {
+  name       = "User2"
+  email      = "user2@example.local"
+  passphrase = "this is not a secure passphrase"
+  rsa_bits   = 3072
+}
+
+module "gitlab_user1_gpg" {
+  source = "github.com/saydulaev/terraform-module-gitlab-user?ref=e850cde4207bf30f702d75ca126575989bd274c9"
+
+  gpgkey = {
+    key     = gpg_private_key.user1.public_key
+    user_id = "User1"
   }
-  user_id    = gitlab_user.this[each.value.user_id]
-  name       = each.value.name
-  expires_at = each.value.expires_at
-  scopes     = each.value.scopes
+
   depends_on = [
-    gitlab_user.this
+    module.gitlab_user,
+    gpg_private_key.user1
   ]
 }
 
-data "gitlab_users" "this" {
-  active = true
+module "gitlab_user2_gpg" {
+  source = "github.com/saydulaev/terraform-module-gitlab-user?ref=e850cde4207bf30f702d75ca126575989bd274c9"
+
+  gpgkey = {
+    key     = gpg_private_key.user2.public_key
+    user_id = "User2"
+  }
+
   depends_on = [
-    gitlab_user.this
+    module.gitlab_user,
+    gpg_private_key.user2
   ]
 }
 
-locals {
-  exists_users = { for user in data.gitlab_users.this.users : user.username => user }
+module "gitlab_user2_token" {
+  source = "github.com/saydulaev/terraform-module-gitlab-user?ref=e850cde4207bf30f702d75ca126575989bd274c9"
+
+  access_token = {
+    name       = "token1"
+    scopes     = ["read_registry"]
+    user_id    = "User2"
+    expires_at = "2024-10-10"
+  }
+
+  depends_on = [
+    module.gitlab_user,
+  ]
+}
+
+module "add_membership" {
+  source = "github.com/saydulaev/terraform-module-gitlab-project?ref=ec70db2f9874c7e4243bdd88aa05b7a771e4d125"
+
+  memberships = [
+    {
+      access_level = "developer"
+      project      = "example"
+      user_id = "User1"
+    },
+    {
+      access_level = "maintainer"
+      project      = "example"
+      user_id = "User2"
+    },
+  ]
+
+  depends_on = [
+    module.gitlab_project,
+    module.gitlab_user
+  ]
 }
