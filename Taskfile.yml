@@ -1,0 +1,194 @@
+---
+version: '3'
+
+includes:
+  remote: 
+    taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.4.2/Taskfile.yml
+    internal: true
+    vars:
+      TASK_RUNTIME:
+        sh: echo "${TASK_RUNTIME:-devbox}"
+    aliases:
+      - "v1.4.0"
+  # security:
+  #   taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/security/sast/security/sast/Taskfile.yml
+  #   # taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.3.0/security/Taskfile.yml
+  #   # taskfile: /Users/ruslan/projects/github/taskfile/security/sast/Taskfile.yml
+  #   # internal: true
+  # docker-compose:
+  #   taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/docker-compose/docker-compose/Taskfile.yml
+  #   internal: true
+  #   dir: 'examples/docker'
+  # terraform:
+  #   # taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.3.1/terraform/Taskfile.yml
+  #   taskfile: /Users/ruslan/projects/github/taskfile/terraform/Taskfile.yml
+  #   internal: true
+  #   vars:
+  #     TASK_RUNTIME:
+  #       sh: echo "${TASK_RUNTIME:-devbox}"
+
+vars:
+  TASK_RUNTIME:
+    sh: echo "${TASK_RUNTIME:-devbox}"
+
+tasks:
+  trivy*:
+    desc: Trivy scan config files for misconfigurations
+    summary: "Trivy scan config files for misconfigurations"
+    cmds:
+      - task: remote:security:sast:trivy:config
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+          TARGET: '{{.USER_WORKING_DIR}}'
+
+  checkov*:
+    desc: Checkov scan config files for misconfigurations
+    summary: |
+      Examples:
+      # Set cyclonedx output format
+      task "checkov --output cyclonedx"
+    cmds:
+      - task: remote:security:sast:checkov:scanner
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+          CKV_FRAMEWORK: terraform
+          CHECKOV_OUTPUT_CODE_LINE_LIMIT: 110
+
+  grype:
+    desc: Grype scan config files for misconfigurations
+    summary: ""
+    cmds:
+      - task: remote:security:sast:grype:scanner
+        vars:
+          CONFIG: 
+          GRYPE_OUTPUT: table
+          GRYPE_DB_AUTO_UPDATE: false
+          GRYPE_ONLY_FIXED: true
+
+  docker-compose-up:
+    desc: "Run Gitlab server via docker compose"
+    summary: "Run docker compose project"
+    silent: false
+    preconditions:
+      - sh: test -f {{.USER_WORKING_DIR}}/examples/docker/docker-compose.yaml
+        msg: docker-compose.yaml file must exists
+    cmds:
+      - mkdir -p {{.USER_WORKING_DIR}}/examples/docker/{config,data,logs}
+      - task: remote:docker-compose:up
+        vars:
+          GLOBAL_FLAGS: "--project-directory {{.USER_WORKING_DIR}}/examples/docker --file {{.USER_WORKING_DIR}}/examples/docker/docker-compose.yaml"
+    status:
+      - test -d {{.USER_WORKING_DIR}}/examples/docker/config
+      - test -d {{.USER_WORKING_DIR}}/examples/docker/data
+      - test -d {{.USER_WORKING_DIR}}/examples/docker/logs
+
+  docker-compose-down:
+    desc: Destroy Gitlab server via docker compose
+    summary: Destroy docker compose and project related dirs
+    preconditions:
+      - test -d {{.USER_WORKING_DIR}}/examples/docker/config
+      - test -d {{.USER_WORKING_DIR}}/examples/docker/data
+      - test -d {{.USER_WORKING_DIR}}/examples/docker/logs
+      - docker ps | grep gitlab
+    silent: false
+    cmds:
+      - ls 
+      - task: remote:docker-compose:down
+        vars:
+          GLOBAL_FLAGS: "--project-directory {{.USER_WORKING_DIR}}/examples/docker --file {{.USER_WORKING_DIR}}/examples/docker/docker-compose.yaml"
+      - rm -rf {{.USER_WORKING_DIR}}/examples/docker/{config,data,logs}
+    status:
+      - test ! -d {{.USER_WORKING_DIR}}/examples/docker/config
+      - test ! -d {{.USER_WORKING_DIR}}/examples/docker/data
+      - test ! -d {{.USER_WORKING_DIR}}/examples/docker/logs
+
+  terraform-init:
+    summary: terraform init
+    desc: terraform init
+    internal: false
+    cmds:
+      - task: remote:terraform:init
+
+  terraform-fmt*:
+    summary: terraform fmt
+    desc: terraform fmt
+    cmds:
+      - task: remote:terraform:fmt
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+    # requires:
+    #   vars: [GITLAB_TOKEN]
+
+  terraform-validate*:
+    summary: terraform validate
+    desc: terraform validate
+    cmds:
+      - task: remote:terraform:validate
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+    # requires:
+    #   vars: [GITLAB_TOKEN]
+
+  terraform-lint:
+    summary: Run tflint validation
+    desc: tflint
+    cmds:
+      - task: remote:terraform:tflint
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform-doc:
+    summary: Gerenarate terraform documentation
+    desc: terraform-doc
+    cmds:
+      - task: remote:terraform:doc
+        vars:
+          FLAGS: '--output-file README.md'
+    # requires:
+    #   vars: [GITLAB_TOKEN]
+
+  terraform-plan*:
+    summary: terraform plan wildcard flags
+    desc: terraform plan
+    deps: [terraform-init]
+    cmds:
+      - task: "remote:terraform:plan"
+        vars:
+          GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
+          FLAGS: '{{.MATCH | join " "}}'
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform-apply*:
+    summary: terraform apply
+    desc: terraform apply
+    deps: [terraform-init]
+    cmds:
+      - task: remote:terraform:apply
+        vars:
+          GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
+          FLAGS: '{{.MATCH | join " "}}'
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform-destroy*:
+    summary: terraform destroy
+    desc: terraform destroy
+    deps: [terraform-init]
+    cmds:
+      - task: terraform:plan
+        vars:
+          FLAGS: "-destroy"
+          GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
+      - task: remote:terraform:destroy
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  stop:
+    summary: stop
+    desc: stop
+    cmds:
+      - task: terraform-destroy
+      - task: docker-compose-down
